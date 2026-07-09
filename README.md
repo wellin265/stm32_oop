@@ -5,9 +5,9 @@
 ## 目前已更新
 
 - LED
+- KEY
 
 ## 计划更新
-- KEY
 - TIM_BASE
 - PWM
 - OLED
