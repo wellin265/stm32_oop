@@ -6,11 +6,11 @@
 
 - LED
 - KEY
+- OLED
 
 ## 计划更新
 - TIM_BASE
 - PWM
-- OLED
 - USART
 - USART_RING
 - NORFLASH
