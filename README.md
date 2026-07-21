@@ -15,6 +15,7 @@
 - DHT11
 - AT24C02
 - NORFLASH
+- ESP8266_MQTT
 
 ## 计划更新
 - TIM_BASE
