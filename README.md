@@ -18,6 +18,7 @@
 - ESP8266_MQTT
 - BLE_HC04
 - MPU6050
+- WS2812
 
 ## 计划更新
 - TIM_BASE

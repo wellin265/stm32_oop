@@ -24,7 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ws2812.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -45,18 +45,88 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+#define LED_COUNT     4
+#define RESET_PULSES  80
 
+static uint8_t  led_color[LED_COUNT * 3];
+static uint16_t led_pwm[24 * LED_COUNT + RESET_PULSES];
+
+static WS2812_S ws2812;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+static void ws2812_test_all(void);
+static void ws2812_test_chase(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/**
+ * @brief  全部 4 颗 LED 同时切换: 红→绿→蓝→白→灭
+ */
+static void ws2812_test_all(void)
+{
+    ws2812.fill(&ws2812, 255, 0, 0);
+    ws2812.send(&ws2812);
+    ws2812.wait_done(&ws2812);
+    HAL_Delay(300);
+
+    ws2812.fill(&ws2812, 0, 255, 0);
+    ws2812.send(&ws2812);
+    ws2812.wait_done(&ws2812);
+    HAL_Delay(300);
+
+    ws2812.fill(&ws2812, 0, 0, 255);
+    ws2812.send(&ws2812);
+    ws2812.wait_done(&ws2812);
+    HAL_Delay(300);
+
+    ws2812.fill(&ws2812, 255, 255, 255);
+    ws2812.send(&ws2812);
+    ws2812.wait_done(&ws2812);
+    HAL_Delay(300);
+
+    ws2812.clear(&ws2812);
+    ws2812.send(&ws2812);
+    ws2812.wait_done(&ws2812);
+    HAL_Delay(300);
+}
+
+/**
+ * @brief  跑马灯: 每颗 LED 依次闪红→绿→蓝→白
+ */
+static void ws2812_test_chase(void)
+{
+    for (uint16_t i = 0; i < LED_COUNT; i++)
+    {
+        ws2812.clear(&ws2812);
+        ws2812.set_led(&ws2812, i, 255, 0, 0);
+        ws2812.send(&ws2812);
+        ws2812.wait_done(&ws2812);
+        HAL_Delay(100);
+
+        ws2812.clear(&ws2812);
+        ws2812.set_led(&ws2812, i, 0, 255, 0);
+        ws2812.send(&ws2812);
+        ws2812.wait_done(&ws2812);
+        HAL_Delay(100);
+
+        ws2812.clear(&ws2812);
+        ws2812.set_led(&ws2812, i, 0, 0, 255);
+        ws2812.send(&ws2812);
+        ws2812.wait_done(&ws2812);
+        HAL_Delay(100);
+
+        ws2812.clear(&ws2812);
+        ws2812.set_led(&ws2812, i, 255, 255, 255);
+        ws2812.send(&ws2812);
+        ws2812.wait_done(&ws2812);
+        HAL_Delay(100);
+    }
+}
 /* USER CODE END 0 */
 
 /**
@@ -92,15 +162,52 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
+  /* ---- 创建 WS2812 驱动对象 ---- */
+  WS2812_CFG_S cfg = {
+      .htim          = &htim2,
+      .timer_channel = TIM_CHANNEL_1,
+      .led_count     = LED_COUNT,
+      .color_buf     = led_color,
+      .pwm_buf       = led_pwm,
+      .pwm_buf_size  = sizeof(led_pwm) / sizeof(uint16_t),
+  };
+  WS2812_Create(&ws2812, &cfg);
+
+  /* ---- 启动验证: 4 颗同时亮绿色 2 秒 ---- */
+  ws2812.fill(&ws2812, 0, 255, 0);
+  ws2812.send(&ws2812);
+  ws2812.wait_done(&ws2812);
+  HAL_Delay(2000);
+
+  /* ---- 逐颗不同颜色: 红/绿/蓝/白 2 秒 ---- */
+  ws2812.clear(&ws2812);
+  ws2812.set_led(&ws2812, 0, 255, 0,   0);   /* LED0 = 红   */
+  ws2812.set_led(&ws2812, 1, 0,   255, 0);   /* LED1 = 绿   */
+  ws2812.set_led(&ws2812, 2, 0,   0, 255);   /* LED2 = 蓝   */
+  ws2812.set_led(&ws2812, 3, 255, 255, 255); /* LED3 = 白   */
+  ws2812.send(&ws2812);
+  ws2812.wait_done(&ws2812);
+  HAL_Delay(2000);
+
+  /* ---- 半亮度验证 2 秒 ---- */
+  ws2812.set_brightness(&ws2812, 128);
+  ws2812.send(&ws2812);
+  ws2812.wait_done(&ws2812);
+  HAL_Delay(2000);
+  ws2812.set_brightness(&ws2812, 255);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+      ws2812_test_chase();
+      HAL_Delay(300);
+      ws2812_test_all();
+      HAL_Delay(300);
+      /* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+      /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -114,9 +221,6 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
@@ -129,8 +233,6 @@ void SystemClock_Config(void)
     Error_Handler();
   }
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -154,27 +256,13 @@ void SystemClock_Config(void)
   */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
   }
-  /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
