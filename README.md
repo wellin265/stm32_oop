@@ -16,13 +16,14 @@
 - AT24C02
 - NORFLASH
 - ESP8266_MQTT
+- BLE_HC04
+- MPU6050
 
 ## 计划更新
 - TIM_BASE
 - PWM
 - USART
 - INMP441
-- BLE
 - USMART
 - ......
 
